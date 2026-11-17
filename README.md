@@ -40,6 +40,10 @@ seed三账号、三个数据集（240行日班、空数据、重复右键）、�
 
 DSL最多6步，首步仅scan readings；filter eq/gte/lte；hash_join仅readings.sensor_id=sensors.sensor_id且最多一次；group仅value的count/sum/avg。禁止eval、任意代码和任意SQL。最多100传感器、2000采样、10000连接输出行；超限失败，不保存部分结果。JSON非法、字段错误、非法算子、孤立引用、重复名有可恢复错误。任务使用Redis简单单消费者，进程崩溃后的running任务不自动重试，保留供人工复查后新建任务。
 
+## 数据集彻底清除
+数据集页面提供「彻底清除」（admin/operator，viewer 403）。受理后数据集立即进入 `purging` 并屏蔽：接口不再返回原表 sensors/readings，全部历史执行的快照/结果/预览/导出立即替换为 `{"purged":true}`，拒绝数据集与关联计划的编辑、拒绝新执行，其他数据集照常工作。worker 对排队中的旧执行直接终止；对已在运行的旧执行，完成回写时凭 `traces.purge_job_id` 与数据集状态双重守卫丢弃结果，晚完成也不能写回。
+清理由 Redis 队列 `purge-jobs` 上的幂等任务（purge_jobs 表）执行，分阶段提交：清空原表 → 清空执行快照与结果并终止在途执行 → 全量核验通过才把数据集置为 `purged`；任一步失败置 `purge_failed` 且保持屏蔽，可在页面重试，重试复用同一任务不重复建。worker 启动时把中断的 running/丢失消息的 queued 任务重新排队（at-least-once，claim 阶段去重）。名称、描述与关联计划始终保留供追溯。页面呈现清理中、清理失败（可重试）、已清除三态，轮询自动刷新。已有库执行 `backend/migrations/002_purge.sql`。
+
 ## 技术、目录与本地开发
 Python3.11 / FastAPI / SQLAlchemy / psycopg / Redis / PostgreSQL16；原生 HTML/CSS/JS ES modules / nginx1.27。五服务frontend/backend/worker/db/redis均健康探针，命名卷数据库/Redis/共享产物。DB/Redis健康后启动backend，backend健康后启worker/frontend。
 

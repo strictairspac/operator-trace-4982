@@ -10,4 +10,6 @@ class Trace(Base):
  result=Column(JSON,nullable=True)
  error=Column(String(1000),nullable=True)
  snapshot=Column(JSON,nullable=False)
+ # 关联的清除任务；非空表示该轨迹受数据集清除屏蔽，worker 不得再写回结果
+ purge_job_id=Column(Integer,ForeignKey('purge_jobs.id'),nullable=True)
  created_at=Column(DateTime,server_default=func.now())

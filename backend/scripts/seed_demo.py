@@ -3,6 +3,7 @@ from src.models.identity import User,Audit
 from src.models.dataset import Dataset
 from src.models.plan import Plan
 from src.models.trace import Trace
+from src.models.purge import PurgeJob
 from src.utils.security import hash_password
 DEFAULT_STEPS=[{'op':'scan','source':'readings'},{'op':'filter','field':'value','compare':'gte','value':50},{'op':'hash_join','right':'sensors','left_key':'sensor_id','right_key':'sensor_id'},{'op':'group','keys':['zone'],'measure':'value','aggregate':'avg'}]
 def seed():
